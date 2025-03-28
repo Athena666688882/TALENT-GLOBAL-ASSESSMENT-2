@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Assessment</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f0f4f8;
+            user-select: none;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        .progress {
+            width: 100%;
+            background-color: #e2e8f0;
+            height: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #5d5bff;
+            width: 0%;
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+        .timer {
+            text-align: right;
+            color: #e53e3e;
+            font-weight: bold;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #5d5bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .header {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .rules {
+            background-color: #fff5f5;
+            color: #e53e3e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .rules-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #e53e3e;
+        }
+        .rules-list {
+            list-style-type: none;
+            padding-left: 20px;
+            margin: 0;
+        }
+        .rules-list li {
+            margin-bottom: 10px;
+            padding-left: 10px;
+            position: relative;
+            color: #e53e3e;
+        }
+        .rules-list li::before {
+            content: "•";
+            color: #e53e3e;
+            font-weight: bold;
+            display: inline-block;
+            width: 10px;
+            margin-left: -10px;
+            position: absolute;
+            left: 0;
+        }
+        .hidden {
+            display: none;
+        }
+        .submission-message {
+            text-align: center;
+            font-size: 18px;
+            color: #2d3748;
+            margin-top: 20px;
+        }
+        .warning-message {
+            background-color: #fff5f5;
+            color: #e53e3e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            text-align: center;
+        }
+        /* Popup Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            text-align: center;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.2);
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .modal-buttons button {
+            width: 48%;
+            padding: 10px;
+            margin: 0;
+        }
+        #proceedButton {
+            background-color: #5d5bff;
+        }
+        #cancelButton {
+            background-color: #e53e3e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="formContainer">
+        <div class="header">Talent Global Recruitment</div>
+        <h2>Enter Your Information</h2>
+        <p>There are 15 questions, and you have 20 minutes to complete the test. You can't go back to change your answers.</p>
+        <div class="rules">
+            <div class="rules-header">⚠️ IMPORTANT:</div>
+            <ul class="rules-list">
+                <li>Any attempt to leave this tab, use AI tools, or search engines will result in immediate disqualification.</li>
+                <li>First violation (tab switching): You will receive a warning.</li>
+                <li>Second violation: Your test will be automatically submitted.</li>
+                <li>Copying, pasting, or right-clicking: Immediate disqualification.</li>
+                <li>Your answers will be automatically saved as you progress.</li>
+            </ul>
+        </div>
+        <form id="userInfoForm">
+            <label for="name">Name:</label>
+            <input type="text" id="name" required><br><br>
+            <label for="email">Email (use the same email as the one provided in the application form):</label>
+            <input type="email" id="email" required><br><br>
+            <label for="position">Position Applied For:</label>
+            <input type="text" id="position" required><br><br>
+            <button type="submit">I Understand & Start Test</button>
+        </form>
+    </div>
+
+    <div class="container hidden" id="quizContainer">
+        <div class="timer" id="timer">Time Remaining: 20:00</div>
+        <div class="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div id="questionContainer"></div>
+        <button id="nextButton">Next Question</button>
+    </div>
+
+    <div class="container hidden" id="submissionContainer">
+        <div class="header">Test Submitted Successfully!</div>
+        <div class="submission-message" id="submissionMessage"></div>
+    </div>
+
+    <!-- Popup Modal -->
+    <div class="modal" id="testConditionsModal">
+        <div class="modal-content">
+            <p>The camera and audio will be activated for randomly selected applicants during the test process. You only have one chance to complete the test. If you close the window, your assessment will be automatically submitted.</p>
+            <div class="modal-buttons">
+                <button id="proceedButton">I acknowledge this test setting</button>
+                <button id="cancelButton">I don’t want to proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            { q: "Which word is closest in meaning to happy?", options: ["Angry", "Sad", "Joyful", "Tired"], correct: "C" },
+            { q: "School: Student :: Hospital : ?", options: ["Patient", "Doctor", "Nurse", "Medicine"], correct: "A" },
+            { q: "A study found that employees who attended a voluntary training session had higher productivity levels than those who did not attend. The training session was held during work hours and focused on time management skills. Therefore, mandatory time management training would increase overall company productivity. Which answer do you think fits the best?", options: ["True", "Probably True", "Insufficient Data", "Probably False", "False"], correct: "B" },
+            { q: "Should employees be bound by law to give employers advance notice of 60 days upon resignation? Argument: No. Labor laws that protect employers, such as this one, discourage employees, making them less efficient in the workplace. Is this a strong argument or weak argument to the above question?", options: ["Strong argument", "Weak argument"], correct: "A" },
+            { q: "Background: In a study conducted last year, researchers surveyed 200 employees at a mid-sized tech company about their preferences for workplace communication. The results showed that 60% of the employees preferred email over face-to-face meetings for routine updates, while 25% favored instant messaging platforms like Slack. The remaining employees expressed no strong preference but indicated they adapted to whatever method their team used. The study also noted that younger employees, aged 25-35, were more likely to favor instant messaging than their older colleagues, though specific percentages were not provided. The company has since implemented a new policy encouraging email use for all routine updates to standardize communication. Proposed Inference: A majority of employees aged 25-35 at the company did not prefer email as their primary method of communication for routine updates before the new policy was introduced.", options: ["True", "Probably True", "Insufficient Data", "Probably False", "False"], correct: "C" },
+            { q: "The price of a book was reduced by 25%. Now, if it is sold at the original price, by what proportion has the price increased?", options: ["1/2", "1/3", "1/4", "1/6"], correct: "B" },
+            { q: "Which number comes next in the sequence?", options: ["24", "28", "30", "32"], correct: "C", image: "https://i.imgur.com/AfMUloA.png" },
+            { q: "Which number should replace the question mark?", options: ["A", "B", "C", "D"], correct: "C", image: "https://i.imgur.com/eGnW1hi.png" },
+            { q: "Which number should replace the question mark?", options: ["1", "4", "5", "7"], correct: "A", image: "https://i.imgur.com/b3HWpWx.png" },
+            { q: "The older brother is 15 years old this year, and his age is three times his sister's age. When the older brother's age is twice his sister's age, how old will the older brother be?", options: ["18", "20", "24", "26", "30"], correct: "B" },
+            { q: "Which option fits best?", options: ["A", "B", "C", "D"], correct: "C", image: "https://i.imgur.com/Mv6o6Sn.png" },
+            { q: "Which option fits best?", options: ["A", "B", "C", "D"], correct: "C", image: "https://i.imgur.com/XKm365E.png" },
+            { q: "Which option fits best?", options: ["A", "B", "C", "D"], correct: "B", image: "https://i.imgur.com/JwVbnfL.png" },
+            { q: "Which option fits best?", options: ["A", "B", "C", "D"], correct: "B", image: "https://i.imgur.com/vKsXJuu.png" },
+            { q: "Which option fits best?", options: ["A", "B", "C", "D"], correct: "D", image: "https://i.imgur.com/B0k8EsW.png" }
+        ];
+
+        let currentQuestionIndex = 0;
+        let userAnswers = {};
+        let timeRemaining = 20 * 60; // 20 minutes in seconds
+        let timerInterval;
+        let tabSwitchCount = 0;
+
+        document.getElementById("userInfoForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            document.getElementById("testConditionsModal").style.display = "flex";
+        });
+
+        document.getElementById("proceedButton").addEventListener("click", function() {
+            document.getElementById("testConditionsModal").style.display = "none";
+            document.getElementById("formContainer").classList.add("hidden");
+            document.getElementById("quizContainer").classList.remove("hidden");
+            startTimer();
+            showQuestion();
+            updateProgressBar();
+            setupAntiCheatMeasures();
+        });
+
+        document.getElementById("cancelButton").addEventListener("click", function() {
+            document.getElementById("testConditionsModal").style.display = "none";
+            submitTest("cancel");
+        });
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    submitTest("auto");
+                }
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            document.getElementById("timer").textContent = `Time Remaining: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
+
+        function showQuestion() {
+            const questionContainer = document.getElementById("questionContainer");
+            const question = questions[currentQuestionIndex];
+
+            let questionHTML = `<h3>${currentQuestionIndex + 1}. ${question.q}</h3>`;
+
+            if (question.image) {
+                questionHTML += `
+                    <div style="text-align: center; margin: 20px 0;">
+                        <img src="${question.image}" alt="Question Image" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                    </div>
+                `;
+            }
+
+            questionHTML += question.options.map((opt, i) => `
+                <label><input type="radio" name="q${currentQuestionIndex}" value="${opt}" ${userAnswers[currentQuestionIndex] === opt ? 'checked' : ''}> ${opt}</label><br>
+            `).join("");
+
+            questionContainer.innerHTML = questionHTML;
+
+            document.getElementById("nextButton").textContent = currentQuestionIndex === questions.length - 1 ? "Submit Test" : "Next Question";
+            updateProgressBar();
+        }
+
+        function updateProgressBar() {
+            const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+            document.getElementById("progressBar").style.width = `${progress}%`;
+        }
+
+        document.getElementById("nextButton").addEventListener("click", function() {
+            saveAnswer();
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                showQuestion();
+            } else {
+                submitTest("manual");
+            }
+        });
+
+        function saveAnswer() {
+            const selected = document.querySelector(`input[name="q${currentQuestionIndex}"]:checked`);
+            if (selected) {
+                userAnswers[currentQuestionIndex] = selected.value;
+            }
+        }
+
+        function submitTest(mode) {
+            clearInterval(timerInterval);
+            document.getElementById("quizContainer").classList.add("hidden");
+            document.getElementById("formContainer").classList.add("hidden");
+            document.getElementById("submissionContainer").classList.remove("hidden");
+
+            let score = 0;
+            let questionResults = {};
+
+            if (mode !== "cancel") {
+                for (let i = 0; i < questions.length; i++) {
+                    const userAnswer = userAnswers[i];
+                    const correctAnswer = questions[i].options[questions[i].correct.charCodeAt(0) - 65];
+                    if (userAnswer === correctAnswer) {
+                        score++;
+                        questionResults[`Q${i + 1}`] = "Correct";
+                    } else {
+                        questionResults[`Q${i + 1}`] = "Wrong";
+                    }
+                }
+            } else {
+                for (let i = 0; i < questions.length; i++) {
+                    questionResults[`Q${i + 1}`] = "Wrong";
+                }
+            }
+
+            const formData = {
+                name: document.getElementById("name").value,
+                email: document.getElementById("email").value,
+                position: document.getElementById("position").value,
+                score: score,
+                Q1: questionResults.Q1 || "Wrong",
+                Q2: questionResults.Q2 || "Wrong",
+                Q3: questionResults.Q3 || "Wrong",
+                Q4: questionResults.Q4 || "Wrong",
+                Q5: questionResults.Q5 || "Wrong",
+                Q6: questionResults.Q6 || "Wrong",
+                Q7: questionResults.Q7 || "Wrong",
+                Q8: questionResults.Q8 || "Wrong",
+                Q9: questionResults.Q9 || "Wrong",
+                Q10: questionResults.Q10 || "Wrong",
+                Q11: questionResults.Q11 || "Wrong",
+                Q12: questionResults.Q12 || "Wrong",
+                Q13: questionResults.Q13 || "Wrong",
+                Q14: questionResults.Q14 || "Wrong",
+                Q15: questionResults.Q15 || "Wrong"
+            };
+
+            const url = new URL("https://script.google.com/macros/s/AKfycbwM3WOt5UdpA3FneouI8QZ3EfFER-ExKYUXmfcWSkkGLjQWD0QeK4P4PNqGjsCcZfUE/exec");
+            url.searchParams.append("name", formData.name);
+            url.searchParams.append("email", formData.email);
+            url.searchParams.append("position", formData.position);
+            url.searchParams.append("score", formData.score);
+            url.searchParams.append("Q1", formData.Q1);
+            url.searchParams.append("Q2", formData.Q2);
+            url.searchParams.append("Q3", formData.Q3);
+            url.searchParams.append("Q4", formData.Q4);
+            url.searchParams.append("Q5", formData.Q5);
+            url.searchParams.append("Q6", formData.Q6);
+            url.searchParams.append("Q7", formData.Q7);
+            url.searchParams.append("Q8", formData.Q8);
+            url.searchParams.append("Q9", formData.Q9);
+            url.searchParams.append("Q10", formData.Q10);
+            url.searchParams.append("Q11", formData.Q11);
+            url.searchParams.append("Q12", formData.Q12);
+            url.searchParams.append("Q13", formData.Q13);
+            url.searchParams.append("Q14", formData.Q14);
+            url.searchParams.append("Q15", formData.Q15);
+
+            fetch(url, {
+                method: "GET",
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log("Response from Google Apps Script:", data);
+                    if (data.result === "Success") {
+                        console.log("Data saved successfully!");
+                    } else {
+                        console.error("Error saving data:", data.error);
+                    }
+                })
+                .catch((error) => {
+                    console.error("Fetch error:", error);
+                });
+
+            let submissionMessage = "";
+            if (mode === "manual") {
+                submissionMessage = `
+                    <p>Your test has been submitted. Thank you for completing the assessment!</p>
+                    <p>You will be moved forward with an interview if selected for the next step.</p>
+                `;
+            } else if (mode === "auto") {
+                submissionMessage = `
+                    <p>Time is up or the window was closed! Your test has been automatically submitted.</p>
+                    <p>Thank you for completing the assessment! You will be moved forward with an interview if selected for the next step.</p>
+                `;
+            } else if (mode === "cancel") {
+                submissionMessage = `
+                    <p>You have chosen not to proceed with the test. Your application has been submitted without completing the assessment.</p>
+                    <p>Thank you for your interest in Talent Global Recruitment.</p>
+                `;
+            }
+            document.getElementById("submissionMessage").innerHTML = submissionMessage;
+        }
+
+        function setupAntiCheatMeasures() {
+            window.addEventListener("blur", () => {
+                tabSwitchCount++;
+                if (tabSwitchCount === 1) {
+                    alert("⚠️ We noticed you switched tabs. Please keep the test window open to maintain the integrity of the assessment. If this happens again, your test will be automatically submitted.");
+                } else if (tabSwitchCount === 2) {
+                    alert("⚠️ You switched tabs again. To ensure fairness, your test is now being submitted. Thank you for your time.");
+                    submitTest("auto");
+                }
+            });
+
+            document.addEventListener("copy", (e) => {
+                e.preventDefault();
+                alert("⚠️ For security reasons, copying and pasting is not allowed during the assessment. Unfortunately, this means your test session has ended. Thank you for your understanding.");
+                submitTest("auto");
+            });
+            document.addEventListener("cut", (e) => {
+                e.preventDefault();
+                alert("⚠️ For security reasons, cutting is not allowed during the assessment. Unfortunately, this means your test session has ended. Thank you for your understanding.");
+                submitTest("auto");
+            });
+            document.addEventListener("contextmenu", (e) => {
+                e.preventDefault();
+                alert("⚠️ For security reasons, right-clicking is not allowed during the assessment. Unfortunately, this means your test session has ended. Thank you for your understanding.");
+                submitTest("auto");
+            });
+
+            window.addEventListener("beforeunload", (e) => {
+                if (!document.getElementById("quizContainer").classList.contains("hidden")) {
+                    submitTest("auto");
+                }
+                e.returnValue = "Your test will be submitted if you close the window. Are you sure?";
+            });
+        }
+    </script>
+</body>
+</html>
