@@ -99,16 +99,6 @@
             color: #2d3748;
             margin-top: 20px;
         }
-        .warning-message {
-            background-color: #fff5f5;
-            color: #e53e3e;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            text-align: center;
-        }
-        /* Popup Styles */
         .modal {
             display: none;
             position: fixed;
@@ -186,7 +176,6 @@
         <div class="submission-message" id="submissionMessage"></div>
     </div>
 
-    <!-- Popup Modal -->
     <div class="modal" id="testConditionsModal">
         <div class="modal-content">
             <p>The camera and audio will be activated for randomly selected applicants during the test process. You only have one chance to complete the test. If you close the window, your assessment will be automatically submitted.</p>
@@ -320,14 +309,14 @@
                     const correctAnswer = questions[i].options[questions[i].correct.charCodeAt(0) - 65];
                     if (userAnswer === correctAnswer) {
                         score++;
-                        questionResults[`Q${i + 1}`] = "Correct";
+                        questionResults[`Q${i + 1}-${i < 5 ? 'V' : i < 10 ? 'M' : 'S'}`] = "Correct";
                     } else {
-                        questionResults[`Q${i + 1}`] = "Wrong";
+                        questionResults[`Q${i + 1}-${i < 5 ? 'V' : i < 10 ? 'M' : 'S'}`] = "Wrong";
                     }
                 }
             } else {
                 for (let i = 0; i < questions.length; i++) {
-                    questionResults[`Q${i + 1}`] = "Wrong";
+                    questionResults[`Q${i + 1}-${i < 5 ? 'V' : i < 10 ? 'M' : 'S'}`] = "Wrong";
                 }
             }
 
@@ -336,78 +325,55 @@
                 email: document.getElementById("email").value,
                 position: document.getElementById("position").value,
                 score: score,
-                Q1: questionResults.Q1 || "Wrong",
-                Q2: questionResults.Q2 || "Wrong",
-                Q3: questionResults.Q3 || "Wrong",
-                Q4: questionResults.Q4 || "Wrong",
-                Q5: questionResults.Q5 || "Wrong",
-                Q6: questionResults.Q6 || "Wrong",
-                Q7: questionResults.Q7 || "Wrong",
-                Q8: questionResults.Q8 || "Wrong",
-                Q9: questionResults.Q9 || "Wrong",
-                Q10: questionResults.Q10 || "Wrong",
-                Q11: questionResults.Q11 || "Wrong",
-                Q12: questionResults.Q12 || "Wrong",
-                Q13: questionResults.Q13 || "Wrong",
-                Q14: questionResults.Q14 || "Wrong",
-                Q15: questionResults.Q15 || "Wrong"
+                "Q1-V": questionResults["Q1-V"] || "Wrong",
+                "Q2-V": questionResults["Q2-V"] || "Wrong",
+                "Q3-V": questionResults["Q3-V"] || "Wrong",
+                "Q4-V": questionResults["Q4-V"] || "Wrong",
+                "Q5-V": questionResults["Q5-V"] || "Wrong",
+                "Q6-M": questionResults["Q6-M"] || "Wrong",
+                "Q7-M": questionResults["Q7-M"] || "Wrong",
+                "Q8-M": questionResults["Q8-M"] || "Wrong",
+                "Q9-M": questionResults["Q9-M"] || "Wrong",
+                "Q10-M": questionResults["Q10-M"] || "Wrong",
+                "Q11-S": questionResults["Q11-S"] || "Wrong",
+                "Q12-S": questionResults["Q12-S"] || "Wrong",
+                "Q13-S": questionResults["Q13-S"] || "Wrong",
+                "Q14-S": questionResults["Q14-S"] || "Wrong",
+                "Q15-S": questionResults["Q15-S"] || "Wrong"
             };
 
-            const url = new URL("https://script.google.com/macros/s/AKfycbwM3WOt5UdpA3FneouI8QZ3EfFER-ExKYUXmfcWSkkGLjQWD0QeK4P4PNqGjsCcZfUE/exec");
-            url.searchParams.append("name", formData.name);
-            url.searchParams.append("email", formData.email);
-            url.searchParams.append("position", formData.position);
-            url.searchParams.append("score", formData.score);
-            url.searchParams.append("Q1", formData.Q1);
-            url.searchParams.append("Q2", formData.Q2);
-            url.searchParams.append("Q3", formData.Q3);
-            url.searchParams.append("Q4", formData.Q4);
-            url.searchParams.append("Q5", formData.Q5);
-            url.searchParams.append("Q6", formData.Q6);
-            url.searchParams.append("Q7", formData.Q7);
-            url.searchParams.append("Q8", formData.Q8);
-            url.searchParams.append("Q9", formData.Q9);
-            url.searchParams.append("Q10", formData.Q10);
-            url.searchParams.append("Q11", formData.Q11);
-            url.searchParams.append("Q12", formData.Q12);
-            url.searchParams.append("Q13", formData.Q13);
-            url.searchParams.append("Q14", formData.Q14);
-            url.searchParams.append("Q15", formData.Q15);
+            const url = new URL("https://script.google.com/macros/s/AKfycbyP1ZmFNnVariDjlicSrawkhwMPNqokbULWxDI_E1mTrhKhZLUVLVdW8yrbRNPMmBFP/exec");
+            Object.keys(formData).forEach(key => url.searchParams.append(key, formData[key]));
 
             fetch(url, {
                 method: "GET",
+                mode: "no-cors" // Required for GitHub Pages to avoid CORS issues
             })
-                .then((response) => response.json())
-                .then((data) => {
-                    console.log("Response from Google Apps Script:", data);
-                    if (data.result === "Success") {
-                        console.log("Data saved successfully!");
-                    } else {
-                        console.error("Error saving data:", data.error);
-                    }
-                })
-                .catch((error) => {
-                    console.error("Fetch error:", error);
-                });
-
-            let submissionMessage = "";
-            if (mode === "manual") {
-                submissionMessage = `
-                    <p>Your test has been submitted. Thank you for completing the assessment!</p>
-                    <p>You will be moved forward with an interview if selected for the next step.</p>
-                `;
-            } else if (mode === "auto") {
-                submissionMessage = `
-                    <p>Time is up or the window was closed! Your test has been automatically submitted.</p>
-                    <p>Thank you for completing the assessment! You will be moved forward with an interview if selected for the next step.</p>
-                `;
-            } else if (mode === "cancel") {
-                submissionMessage = `
-                    <p>You have chosen not to proceed with the test. Your application has been submitted without completing the assessment.</p>
-                    <p>Thank you for your interest in Talent Global Recruitment.</p>
-                `;
-            }
-            document.getElementById("submissionMessage").innerHTML = submissionMessage;
+            .then(() => {
+                console.log("Data submitted successfully");
+                let submissionMessage = "";
+                if (mode === "manual") {
+                    submissionMessage = `
+                        <p>Your test has been submitted. Thank you for completing the assessment!</p>
+                        <p>You will be moved forward with an interview if selected for the next step.</p>
+                    `;
+                } else if (mode === "auto") {
+                    submissionMessage = `
+                        <p>Time is up or the window was closed! Your test has been automatically submitted.</p>
+                        <p>Thank you for completing the assessment! You will be moved forward with an interview if selected for the next step.</p>
+                    `;
+                } else if (mode === "cancel") {
+                    submissionMessage = `
+                        <p>You have chosen not to proceed with the test. Your application has been submitted without completing the assessment.</p>
+                        <p>Thank you for your interest in Talent Global Recruitment.</p>
+                    `;
+                }
+                document.getElementById("submissionMessage").innerHTML = submissionMessage;
+            })
+            .catch(error => {
+                console.error("Error submitting data:", error);
+                document.getElementById("submissionMessage").innerHTML = "<p>Error submitting test. Please try again or contact support.</p>";
+            });
         }
 
         function setupAntiCheatMeasures() {
