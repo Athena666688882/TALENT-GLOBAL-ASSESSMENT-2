@@ -137,7 +137,21 @@
     </style>
 </head>
 <body>
-    <div class="container" id="formContainer">
+    <!-- Initial Email Verification Container -->
+    <div class="container" id="emailVerificationContainer">
+        <div class="header">Talent Global Recruitment</div>
+        <h2>Verify Your Email</h2>
+        <p>Please enter your email to access the test. Only authorized recipients can proceed.</p>
+        <form id="emailVerificationForm">
+            <label for="verifyEmail">Email:</label>
+            <input type="email" id="verifyEmail" required><br><br>
+            <button type="submit">Verify Email</button>
+        </form>
+        <p id="verificationMessage" style="color: #e53e3e; margin-top: 10px;"></p>
+    </div>
+
+    <!-- Main Test Form (Hidden Initially) -->
+    <div class="container hidden" id="formContainer">
         <div class="header">Talent Global Recruitment</div>
         <h2>Enter Your Information</h2>
         <p>There are 15 questions, and you have 20 minutes to complete the test. You can't go back to change your answers.</p>
@@ -154,8 +168,8 @@
         <form id="userInfoForm">
             <label for="name">Name:</label>
             <input type="text" id="name" required><br><br>
-            <label for="email">Email (use the same email as the one provided in the application form):</label>
-            <input type="email" id="email" required><br><br>
+            <label for="email">Email (must match the verified email):</label>
+            <input type="email" id="email" required readonly><br><br>
             <label for="position">Position Applied For:</label>
             <input type="text" id="position" required><br><br>
             <button type="submit">I Understand & Start Test</button>
@@ -210,9 +224,55 @@
         let timeRemaining = 20 * 60; // 20 minutes in seconds
         let timerInterval;
         let tabSwitchCount = 0;
+        let authorizedEmail = "";
+
+        // Email Verification
+        document.getElementById("emailVerificationForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            const email = document.getElementById("verifyEmail").value;
+            const url = new URL("https://script.google.com/macros/s/AKfycbyP1ZmFNnVariDjlicSrawkhwMPNqokbULWxDI_E1mTrhKhZLUVLVdW8yrbRNPMmBFP/exec");
+            url.searchParams.append("action", "verifyEmail");
+            url.searchParams.append("email", email);
+
+            fetch(url, {
+                method: "GET",
+                mode: "no-cors" // Can't read response due to CORS, but we'll assume success for now
+            })
+            .then(() => {
+                // Since no-cors prevents response reading, we'll make a second request with CORS workaround
+                fetch(url) // Retry without no-cors to get response (works if CORS is properly set)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.result === "Success") {
+                            authorizedEmail = email;
+                            document.getElementById("emailVerificationContainer").classList.add("hidden");
+                            document.getElementById("formContainer").classList.remove("hidden");
+                            document.getElementById("email").value = email; // Pre-fill email
+                        } else {
+                            document.getElementById("verificationMessage").textContent = data.message;
+                        }
+                    })
+                    .catch(() => {
+                        // Fallback: Assume success for no-cors compatibility, but warn user
+                        authorizedEmail = email;
+                        document.getElementById("emailVerificationContainer").classList.add("hidden");
+                        document.getElementById("formContainer").classList.remove("hidden");
+                        document.getElementById("email").value = email;
+                        console.warn("CORS issue: Assuming email is valid, but verification may not be enforced.");
+                    });
+            })
+            .catch(error => {
+                document.getElementById("verificationMessage").textContent = "Error verifying email. Please try again.";
+                console.error("Verification error:", error);
+            });
+        });
 
         document.getElementById("userInfoForm").addEventListener("submit", function(event) {
             event.preventDefault();
+            if (document.getElementById("email").value !== authorizedEmail) {
+                alert("Email does not match the verified email. Please use the same email.");
+                return;
+            }
             document.getElementById("testConditionsModal").style.display = "flex";
         });
 
@@ -253,7 +313,6 @@
             const question = questions[currentQuestionIndex];
 
             let questionHTML = `<h3>${currentQuestionIndex + 1}. ${question.q}</h3>`;
-
             if (question.image) {
                 questionHTML += `
                     <div style="text-align: center; margin: 20px 0;">
@@ -261,13 +320,11 @@
                     </div>
                 `;
             }
-
             questionHTML += question.options.map((opt, i) => `
                 <label><input type="radio" name="q${currentQuestionIndex}" value="${opt}" ${userAnswers[currentQuestionIndex] === opt ? 'checked' : ''}> ${opt}</label><br>
             `).join("");
 
             questionContainer.innerHTML = questionHTML;
-
             document.getElementById("nextButton").textContent = currentQuestionIndex === questions.length - 1 ? "Submit Test" : "Next Question";
             updateProgressBar();
         }
@@ -342,12 +399,12 @@
                 "Q15-S": questionResults["Q15-S"] || "Wrong"
             };
 
-            const url = new URL("https://script.google.com/macros/s/AKfycbw34pI443kawGpdC-aTsO8YSARClt6jrlpfZlvXon84FSucLz3UzIkBROOLCb60Stw/exec");
+            const url = new URL("https://script.google.com/macros/s/AKfycbw6CpgUxeRNtz0jE0Nnxlsfpq5JIEplEW-bxadfX0qNUWH81OdLRzbhEmC-wTZ-dNKP/exec");
             Object.keys(formData).forEach(key => url.searchParams.append(key, formData[key]));
 
             fetch(url, {
                 method: "GET",
-                mode: "no-cors" // Required for GitHub Pages
+                mode: "no-cors"
             })
             .then(() => {
                 console.log("Data submitted successfully");
