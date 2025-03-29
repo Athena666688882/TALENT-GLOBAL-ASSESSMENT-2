@@ -141,7 +141,7 @@
     <div class="container" id="emailVerificationContainer">
         <div class="header">Talent Global Recruitment</div>
         <h2>Verify Your Email</h2>
-        <p>Please enter your email to access the test. Only authorized recipients can proceed.</p>
+        <p>Please enter the same email you used when applying for this job to access the test. Only authorized recipients can proceed.</p>
         <form id="emailVerificationForm">
             <label for="verifyEmail">Email:</label>
             <input type="email" id="verifyEmail" required><br><br>
@@ -234,13 +234,14 @@
             url.searchParams.append("action", "verifyEmail");
             url.searchParams.append("email", email);
 
+            // First fetch with no-cors to ensure the request is sent
             fetch(url, {
                 method: "GET",
-                mode: "no-cors" // Can't read response due to CORS, but we'll assume success for now
+                mode: "no-cors"
             })
             .then(() => {
-                // Since no-cors prevents response reading, we'll make a second request with CORS workaround
-                fetch(url) // Retry without no-cors to get response (works if CORS is properly set)
+                // Second fetch to attempt reading the response
+                fetch(url)
                     .then(response => response.json())
                     .then(data => {
                         if (data.result === "Success") {
@@ -252,17 +253,13 @@
                             document.getElementById("verificationMessage").textContent = data.message;
                         }
                     })
-                    .catch(() => {
-                        // Fallback: Assume success for no-cors compatibility, but warn user
-                        authorizedEmail = email;
-                        document.getElementById("emailVerificationContainer").classList.add("hidden");
-                        document.getElementById("formContainer").classList.remove("hidden");
-                        document.getElementById("email").value = email;
-                        console.warn("CORS issue: Assuming email is valid, but verification may not be enforced.");
+                    .catch(error => {
+                        document.getElementById("verificationMessage").textContent = "Error verifying email. Please try again or contact support.";
+                        console.error("Verification error:", error);
                     });
             })
             .catch(error => {
-                document.getElementById("verificationMessage").textContent = "Error verifying email. Please try again.";
+                document.getElementById("verificationMessage").textContent = "Error verifying email. Please try again or contact support.";
                 console.error("Verification error:", error);
             });
         });
@@ -407,30 +404,47 @@
                 mode: "no-cors"
             })
             .then(() => {
-                console.log("Data submitted successfully");
-                let submissionMessage = "";
-                if (mode === "manual") {
-                    submissionMessage = `
-                        <p>Your test has been submitted. Thank you for completing the assessment!</p>
-                        <p>You will be moved forward with an interview if selected for the next step.</p>
-                    `;
-                } else if (mode === "auto") {
-                    submissionMessage = `
-                        <p>Time is up or the window was closed! Your test has been automatically submitted.</p>
-                        <p>Thank you for completing the assessment! You will be moved forward with an interview if selected for the next step.</p>
-                    `;
-                } else if (mode === "cancel") {
-                    submissionMessage = `
-                        <p>You have chosen not to proceed with the test. Your application has been submitted without completing the assessment.</p>
-                        <p>Thank you for your interest in Talent Global Recruitment.</p>
-                    `;
-                }
-                document.getElementById("submissionMessage").innerHTML = submissionMessage;
+                // Since we can't read the response, attempt a second fetch to confirm
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.result === "Success") {
+                            displaySubmissionMessage(mode);
+                        } else {
+                            document.getElementById("submissionMessage").innerHTML = "<p>Error submitting test: " + data.error + "</p>";
+                        }
+                    })
+                    .catch(() => {
+                        // Fallback: Assume success for no-cors, but this is less reliable
+                        displaySubmissionMessage(mode);
+                        console.warn("CORS issue: Assuming submission succeeded, but it may not have saved.");
+                    });
             })
             .catch(error => {
-                console.error("Error submitting data:", error);
                 document.getElementById("submissionMessage").innerHTML = "<p>Error submitting test. Please try again or contact support.</p>";
+                console.error("Submission error:", error);
             });
+        }
+
+        function displaySubmissionMessage(mode) {
+            let submissionMessage = "";
+            if (mode === "manual") {
+                submissionMessage = `
+                    <p>Your test has been submitted. Thank you for completing the assessment!</p>
+                    <p>You will be moved forward with an interview if selected for the next step.</p>
+                `;
+            } else if (mode === "auto") {
+                submissionMessage = `
+                    <p>Time is up or the window was closed! Your test has been automatically submitted.</p>
+                    <p>Thank you for completing the assessment! You will be moved forward with an interview if selected for the next step.</p>
+                `;
+            } else if (mode === "cancel") {
+                submissionMessage = `
+                    <p>You have chosen not to proceed with the test. Your application has been submitted without completing the assessment.</p>
+                    <p>Thank you for your interest in Talent Global Recruitment.</p>
+                `;
+            }
+            document.getElementById("submissionMessage").innerHTML = submissionMessage;
         }
 
         function setupAntiCheatMeasures() {
