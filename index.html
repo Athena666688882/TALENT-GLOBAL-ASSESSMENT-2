@@ -342,12 +342,12 @@
                 "Q15-S": questionResults["Q15-S"] || "Wrong"
             };
 
-            const url = new URL("https://script.google.com/macros/s/AKfycbyP1ZmFNnVariDjlicSrawkhwMPNqokbULWxDI_E1mTrhKhZLUVLVdW8yrbRNPMmBFP/exec");
+            const url = new URL("https://script.google.com/macros/s/AKfycbw34pI443kawGpdC-aTsO8YSARClt6jrlpfZlvXon84FSucLz3UzIkBROOLCb60Stw/exec");
             Object.keys(formData).forEach(key => url.searchParams.append(key, formData[key]));
 
             fetch(url, {
                 method: "GET",
-                mode: "no-cors" // Required for GitHub Pages to avoid CORS issues
+                mode: "no-cors" // Required for GitHub Pages
             })
             .then(() => {
                 console.log("Data submitted successfully");
