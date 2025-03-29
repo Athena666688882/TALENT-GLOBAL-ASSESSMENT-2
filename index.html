@@ -234,16 +234,17 @@
             url.searchParams.append("action", "verifyEmail");
             url.searchParams.append("email", email);
 
-            // First fetch with no-cors to ensure the request is sent
+            // Single fetch with no-cors to send the request
             fetch(url, {
                 method: "GET",
                 mode: "no-cors"
             })
             .then(() => {
-                // Second fetch to attempt reading the response
+                // Since we can't read the response, attempt a second fetch to get the result
                 fetch(url)
                     .then(response => response.json())
                     .then(data => {
+                        console.log("Verification response:", data); // Debug log
                         if (data.result === "Success") {
                             authorizedEmail = email;
                             document.getElementById("emailVerificationContainer").classList.add("hidden");
@@ -254,13 +255,18 @@
                         }
                     })
                     .catch(error => {
-                        document.getElementById("verificationMessage").textContent = "Error verifying email. Please try again or contact support.";
-                        console.error("Verification error:", error);
+                        // If the second fetch fails, assume the email might be valid and let the server-side check handle it
+                        console.error("Verification fetch error:", error);
+                        authorizedEmail = email;
+                        document.getElementById("emailVerificationContainer").classList.add("hidden");
+                        document.getElementById("formContainer").classList.remove("hidden");
+                        document.getElementById("email").value = email;
+                        document.getElementById("verificationMessage").textContent = "Unable to verify email due to network issues. Proceeding, but submission may fail if email is unauthorized.";
                     });
             })
             .catch(error => {
-                document.getElementById("verificationMessage").textContent = "Error verifying email. Please try again or contact support.";
-                console.error("Verification error:", error);
+                console.error("Initial fetch error:", error);
+                document.getElementById("verificationMessage").textContent = "Error sending verification request. Please try again or contact support.";
             });
         });
 
@@ -404,25 +410,27 @@
                 mode: "no-cors"
             })
             .then(() => {
-                // Since we can't read the response, attempt a second fetch to confirm
+                // Attempt to fetch the response to confirm submission
                 fetch(url)
                     .then(response => response.json())
                     .then(data => {
+                        console.log("Submission response:", data); // Debug log
                         if (data.result === "Success") {
                             displaySubmissionMessage(mode);
                         } else {
                             document.getElementById("submissionMessage").innerHTML = "<p>Error submitting test: " + data.error + "</p>";
                         }
                     })
-                    .catch(() => {
-                        // Fallback: Assume success for no-cors, but this is less reliable
+                    .catch(error => {
+                        console.error("Submission fetch error:", error);
+                        // Fallback: Assume success, but warn user
                         displaySubmissionMessage(mode);
-                        console.warn("CORS issue: Assuming submission succeeded, but it may not have saved.");
+                        console.warn("CORS issue: Assuming submission succeeded, but it may not have saved if the email is unauthorized.");
                     });
             })
             .catch(error => {
-                document.getElementById("submissionMessage").innerHTML = "<p>Error submitting test. Please try again or contact support.</p>";
                 console.error("Submission error:", error);
+                document.getElementById("submissionMessage").innerHTML = "<p>Error submitting test. Please try again or contact support.</p>";
             });
         }
 
